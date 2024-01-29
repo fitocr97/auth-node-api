@@ -10,6 +10,7 @@ require('dotenv').config();
 // Accede a las variables de entorno
 const dbPassword = process.env.DB_PASSWORD;
 const dbUser = process.env.DB_USER;
+const stringSecreto = process.env.JWT_STRING;
 
 //conexion db
 try {
@@ -23,6 +24,8 @@ const app = express()
 
 app.use(express.json())
 
+//registrar un usuario en la bd
+const signToken =  _id => jwt.sign({ _id }, stringSecreto)
 app.post('/register', async (req, res) => {
     const {body} = req
     console.log({body})
@@ -30,17 +33,16 @@ app.post('/register', async (req, res) => {
         
         const isUser = await User.findOne({email: body.email})
         if(isUser){
-            console.log('existe')
+            console.log('el usuario ya existe')
             return res.status(403).send('User exist')
         }else{
-            console.log('entro a crear')
             const salt = await bcrypt.genSalt()
-            console.log(salt)
             const hashed = await bcrypt.hash(body.password, salt)
-            console.log(hashed)
             const user = await User.create({email: body.email, password: hashed, salt})
+            const signed = signToken(user._id)
         
-            res.send({_id: user._id})
+            //res.send({_id: user._id}) //devolver el id del user
+            res.send(signed)
         }
 
     }catch (err){
